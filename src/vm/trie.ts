@@ -1,24 +1,24 @@
 import { createMPT } from "@ethereumjs/mpt";
 import { RLP } from "@ethereumjs/rlp";
 import { keccak256 } from "ethereum-cryptography/keccak";
-import { hexToBytes } from "@ethereumjs/util";
+import { hexToBytes, PrefixedHexString } from "@ethereumjs/util";
 
-interface Account {
-  nonce: Buffer;
-  balance: Buffer;
-  code: Buffer;
-  storage: { [key: string]: Buffer };
-}
+export type Account = {
+  nonce?: string;
+  balance?: string;
+  code?: PrefixedHexString;
+  storage?: { [key: string]: PrefixedHexString };
+};
 
-interface WorldState {
+export type WorldState = {
   [address: string]: Account;
-}
+};
 
 /**
  * Helper function to create a storage trie root from the Account's storage.
  */
 async function buildStorageRoot(storage: {
-  [key: string]: Buffer;
+  [key: string]: PrefixedHexString;
 }): Promise<Buffer> {
   const storageTrie = await createMPT({ useKeyHashing: true });
   for (const slot in storage) {
@@ -35,7 +35,7 @@ async function buildStorageRoot(storage: {
  */
 async function encodeAccount(account: Account): Promise<Buffer> {
   // Build the storage root
-  const storageRoot = await buildStorageRoot(account.storage);
+  const storageRoot = await buildStorageRoot(account.storage ?? {});
   const codeHash = keccak256(hexToBytes(account.code ?? "0x"));
 
   // RLP encoding of scalar values MUST NOT have
