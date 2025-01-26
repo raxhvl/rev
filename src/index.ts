@@ -1,20 +1,19 @@
-import { send } from "./lib/jwtClient";
-
-import request from "./request.json";
-import genesis from "./state/genesis.json";
-
 import "dotenv/config";
-import { buildStateTrieRoot } from "./state/trie";
+import { buildStateTrieRoot } from "./vm/trie";
 import { hexToBytes, bytesToHex } from "@ethereumjs/util";
 import { Wallet } from "@ethereumjs/wallet";
 import { LegacyTransaction } from "@ethereumjs/tx";
-
+import { t8n } from "./vm/t8n";
+import { promises as fs } from "fs";
+import path from "path";
 const secret = process.env.JWT_SECRET || "";
 
 const main = async () => {
-  //   const response = await send(request, secret);
-  //   console.log(response);
-
+  if (!process.env.ACCOUNT_1_KEY) {
+    throw new Error(
+      "ACCOUNT_1_KEY is not defined in the environment variables"
+    );
+  }
   const account = new Wallet(hexToBytes(process.env.ACCOUNT_1_KEY));
   console.log(account.getAddressString());
 
@@ -29,27 +28,28 @@ const main = async () => {
 
   console.log(signedTx.toJSON());
 
-  //   console.log(signedTx);
-
-  console.log(await buildStateTrieRoot(genesis.alloc));
-
-  genesis.alloc = {
-    "0x0000000000000000000000000000000000000000": {
-      balance: "0x5208",
-    },
-    "0x000000000000000000000000000000000000000a": {
-      balance: "0x1",
-    },
-    "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": {
-      balance: "0xef037",
-      nonce: "0x1",
+  const preState = {
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": {
+      balance: "0xF4240",
     },
   };
 
-  console.log(
-    bytesToHex(await buildStateTrieRoot(genesis.alloc)) ==
-      "0xd077ec67768e27815486177abdd398fc21673526f18dd039f12ebdf3b8420e36"
-  );
+  const txs = [
+    {
+      type: "0x0",
+      nonce: "0x0",
+      gas: "0x5208",
+      to: "0x000000000000000000000000000000000000000a",
+      value: "0x1",
+      input: "0x",
+      v: "0x26",
+      r: "0xe43abe00a909cc8c647023db119a80e303ef594bbf71462210a5629c0da493eb",
+      s: "0x2cf2165b81a4bf3374debc82c97160fd2f69a46823fd71cbd10a0c9c98a5dfdd",
+      gasPrice: "0x1",
+    },
+  ];
+
+  await t8n(preState, txs);
 };
 
 main();
