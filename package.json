@@ -14,10 +14,13 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "@ethereumjs/block": "^6.0.0-alpha.1",
+    "@ethereumjs/common": "^5.0.0-alpha.1",
     "@ethereumjs/mpt": "^7.0.0-alpha.1",
     "@ethereumjs/rlp": "^5.0.2",
-    "@ethereumjs/tx": "^5.4.0",
-    "@ethereumjs/util": "^9.1.0",
+    "@ethereumjs/tx": "^6.0.0-alpha.1",
+    "@ethereumjs/util": "^10.0.0-alpha.1",
+    "@ethereumjs/vm": "^9.0.0-alpha.1",
     "@ethereumjs/wallet": "^2.0.4",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
