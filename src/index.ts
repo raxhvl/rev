@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createLegacyTx } from "@ethereumjs/tx";
-import { createBlock } from "@ethereumjs/block";
-import { Common, Mainnet } from "@ethereumjs/common";
+import { createBlock, HeaderData } from "@ethereumjs/block";
+import { Common, Holesky } from "@ethereumjs/common";
 import { buildBlock, createVM } from "@ethereumjs/vm";
 import {
   bytesToHex,
@@ -9,27 +9,29 @@ import {
   createAddressFromPrivateKey,
   Account,
 } from "@ethereumjs/util";
+import { send } from "./lib/jwtClient";
 
 const secret = process.env.JWT_SECRET || "";
 
 const BENEFICIARY = "0x0000000000000000000000000000000000000000";
 
 const main = async () => {
-  const common = new Common({ chain: Mainnet });
+  const common = new Common({ chain: Holesky });
   const vm = await createVM({ common });
 
-  const parentBlock = createBlock(
-    { header: { number: 1n } },
-    { skipConsensusFormatValidation: true }
-  );
-  const headerData = {
-    number: 2n,
+  const genesisBlock = createBlock({ header: { number: 0n } });
+
+  const headerData: HeaderData = {
+    number: 1n,
+    timestamp: Math.floor(Date.now() / 1000),
+    coinbase: BENEFICIARY,
+    baseFeePerGas: 1n,
   };
   const blockBuilder = await buildBlock(vm, {
-    parentBlock,
+    parentBlock: genesisBlock,
     headerData,
     blockOpts: {
-      calcDifficultyFromHeader: parentBlock.header,
+      calcDifficultyFromHeader: genesisBlock.header,
       freeze: false,
       skipConsensusFormatValidation: true,
       putBlockIntoBlockchain: false,
@@ -41,12 +43,33 @@ const main = async () => {
   const account = new Account(0n, 0xfffffffffn);
   await vm.stateManager.putAccount(address, account);
 
-  const tx = createLegacyTx({ gasLimit: 0xffffff, gasPrice: 75n }).sign(pk);
-  await blockBuilder.addTransaction(tx);
+  for (let i = 0; i < 10; i++) {
+    const tx = createLegacyTx(
+      {
+        nonce: i,
+        to: "0x000000000000000000000000000000000000000a",
+        value: 1,
+        gasPrice: 1,
+        gasLimit: 21000,
+      },
+      { common }
+    ).sign(pk);
+
+    await blockBuilder.addTransaction(tx);
+  }
 
   // Add more transactions
   const block = await blockBuilder.build();
-  console.log(`Built a block with hash ${bytesToHex(block.hash())}`);
+
+  const response = await send(
+    {
+      jsonrpc: "2.0",
+      method: "engine_newPayloadV1",
+      params: [block.toExecutionPayload()],
+      id: 67,
+    },
+    secret
+  );
 };
 
 main();
